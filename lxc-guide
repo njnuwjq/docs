@@ -1,0 +1,65 @@
+1. 在宿主机上安装lxc包
+sudo apt-get install lxc
+2. 配置自动启动
+sudo vi /etc/lxc/auto
+lxc.start.auto = 1
+lxc.start.delay = 5
+
+3.创建一个虚拟机
+sudo lxc-create --template ubuntu --name xxxx -- --release utopic -a amd64
+#
+创建好的虚拟机用户名为ubuntu, 密码ubuntu
+4.启动一台虚拟机
+sudo lxc-start -n xxxx
+5.进入虚拟机
+sudo lxc-attach -n xxxx
+查看虚拟机的ip: ifconfig
+修改虚拟机用户ubuntu的密码:sudo passwd ubuntu
+然后重启虚拟机:sudo reboot
+以后用ssh登录虚拟机
+6. 查看各虚拟机状态
+sudo lxc-ls --fancy
+7. 删除某台虚拟机
+sudo lxc-destroy -n xxxx
+
+##########################################
+# 给虚拟机挂载硬盘
+##########################################
+1. 给宿主机插入一快新的硬盘，并在/dev下找到它，假设他叫/dev/vdb
+2. 对/dev/vdb进行分区:
+  1) sudo fdisk /dev/vdb
+     根据提示选择1. n 2. p 3. 默认起始sector 4. 选择结束sector 创建第一 个primary分区 #每个sector为512Byte，那么2，000,000个sector是1G
+     然后，继续1.n 2.p 3. 默认起始sector 4.选择结束sector，创建第二个 primary分区
+     然后，继续1.n 2.p 3. 默认起始sector 4.选择结束sector，创建第三个 primary分区
+     然后，继续1.n 2.e 3. 默认起始sector 4.选择结束sector为磁盘的最大 (默认），创建第extended分区
+     然后，继续1.n 2.l 3. 默认起始sector 4.选择结束sector，创建第一个 logic分区
+     重复上述步骤直至磁盘容量分完
+     最后，wq退出fdisk
+   2) sudo fdisk -l 检查分区是否正确
+   3) 对每个新分区进行格式化,比如:sudo mkfs.ext3 /dev/vdb1 #文件系统格 式与宿主机相同（ext3/ext4/....)
+
+3.把某个分区挂载到某个目录(给对应的虚拟机使用),比如：/mnt/rabbitmq
+  sudo mkdir /mnt/rabbitmq
+  sudo mount -o noatime,nodiratime /dev/vdb1 /mnt/rabbitmq
+  在/etc/fstab 中添加一行： /dev/vdb1 /mnt/rabbitmq ext3 noatime,nodiratime 0 0
+
+4.给对应的虚拟机的fstab添加一行:
+sudo vi /var/lib/lxc/rabbitmq/fstab
+/mnt/rabbitmq /var/lib/lxc/rabbitmq/rootfs/mnt none bind 0 0
+5.重启虚拟机 sudo lxc-start -n rabbitmq
+
+
+
+
+ip设置
+auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet static
+        address 192.168.1.102
+        network 192.168.1.0
+        netmask 255.255.255.0
+        broadcast 192.168.1.255
+        gateway 192.168.1.1
+        dns-nameservers 8.8.8.8 

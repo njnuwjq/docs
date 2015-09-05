@@ -1,0 +1,19 @@
+1. edit the riak.conf with following on riak nodes:
+search=on
+backend=leveldb
+
+2. Type the following on a erl terminal with riakc_pb_socket libs
+>{ok, Pid}=riakc_pb_socket:start_link("192.168.1.103", 8000).
+>{ok, SchemaData} = file:read_file("/home/barco/Proj/cloudbox_portal/apps/cloudbox_portal/priv/riak_modules/solr_schema.xml").
+> riakc_pb_socket:create_search_schema(Pid, <<"videos">>,SchemaData).
+
+curl -X PUT -H 'content-type: application/xml' 'http://192.168.1.102:10028/search/schema/videos' --data-binary @apps/cloudbox_portal/priv/riak_modules/solr_schema.xml
+
+<!--you must do this step if you want make it work -->
+curl -XDELETE http://192.168.1.102:10018/search/index/videos
+
+curl -XPUT http://192.168.1.102:10028/search/index/videos -H 'Content-Type: application/json' -d '{"schema":"videos"}'
+
+3. do following on riak nodes
+riak-admin bucket-type create video '{"props":{"allow_mult":false, "search_index":"videos"}}'
+riak-admin bucket-type activate video

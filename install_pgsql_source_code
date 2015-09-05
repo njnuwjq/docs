@@ -1,0 +1,20 @@
+install dependencies:
+sudo apt-get install flex
+sudo apt-get install libreadline-dev
+sudo apt-get install  build-essential
+sudo apt-get install zlib1g-dev 
+
+tar -xvf postgresql-xxx.tar.gz2
+cd postgresql-xxx
+ubuntu~$./configrue --prefix=/path/to/where/to/install/
+ubuntu~$make
+ubuntu~$make install
+ubuntu~$sudo mkdir /path/to/pgsql/data
+
+ubuntu~$sudo /path/to/pgsql/bin/initdb -D /path/to/pgsql/data
+ubuntu~$sudo /path/to/pgsql/bin/postgres -D /path/to/pgsql/data
+ubuntu~$/path/to/pgsql/bin/createdb test
+ubuntu~$/path/to/pgsql/bin/psql test
+psql(xxx)
+Type "help" for help
+test=#

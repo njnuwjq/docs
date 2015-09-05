@@ -1,0 +1,12 @@
+1.install erlang otp_src_R16B02
+note:before install erlang you must install 
+
+2.install riak 
+problem:
+fatal error: security/pam_appl.h: 没有那个文件或目录
+solution:
+sudo apt-get install libpam0g-dev
+
+3.install riak_cs
+
+4.install riak_stanchion
