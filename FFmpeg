@@ -1,0 +1,18 @@
+sudo apt-get install autoconf automake build-essential libass-dev libfreetype6-dev libgpac-dev \
+  libsdl1.2-dev libtheora-dev libtool libva-dev libvdpau-dev libvorbis-dev libxcb1-dev libxcb-shm0-dev \
+  libxcb-xfixes0-dev pkg-config texi2html zlib1g-dev cmake
+sudo apt-get install  libfaac-dev libfaac0 libmp3lame-dev libmp3lame0 libx264-dev x264 libssh-dev ssh openssh-client openssh-server libtheora-dev libtheora0 libvpx-dev libvpx1 libxvidcore-dev libxvidcore4 libopus-dev libfdk-aac-dev yasm
+git clone https://github.com/videolan/x265
+cd x265/build/linux
+cmake -G "Unix Makefiles" ../../source && ccmake ../../source -DCMAKE_INSTALL_PREFIX="/usr" -DENABLE_SHARED
+make
+sudo make install
+
+
+git clone https://github.com/FFmpeg/FFmpeg
+cd FFmpeg
+./configure --prefix=/usr/local --enable-libfaac --enable-libmp3lame --enable-libssh --enable-libtheora --enable-libvpx --enable-libx264 --enable-libxvid --enable-openssl --enable-gpl --enable-nonfree --enable-libass --enable-libfdk-aac --enable-libfreetype --enable-libopus --enable-libvorbis --enable-libvpx  --enable-libx265
+make
+sudo make install
+
+ffmpeg -i in.mkv -map 0 -codec:v libx264 -codec:a libfaac -f ssegment -segment_list_flags +live -segment_time 10 -segment_list index.m3u8 out%03d.ts
