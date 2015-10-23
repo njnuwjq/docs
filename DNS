@@ -1,0 +1,32 @@
+安装 域名服务器
+sudo apt-get install bind9
+
+sudo vim /etc/bind/named.conf.local
+
+zone "s3.amazonaws.com" {
+type master;
+file "/etc/bind/db.s3.amazonaws.com";
+};
+
+sudo vim /etc/bind/db.s3.amazonaws.com
+
+;
+; BIND data file for local loopback interface
+;
+$TTL    14400
+@       IN      SOA     s3.amazonaws.com. root.s3.amazonaws.com. (
+                              2         ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
+;
+@       IN      NS      s3.amazonaws.com.
+@       IN      A       配置成riakcs的IP地址
+*       IN      A       配置成riakcs的IP地址
+@       IN      AAAA    ::1
+
+在本 机指定域名服务器
+sudo vim /etc/resolvconf/resolv.conf.d/head
+nameserver   域名服务器IP地址
+search s3.amazonaws.com 
