@@ -1,0 +1,54 @@
+〇、介绍
+
+riak是basho实现的一个分布式NoSQL数据存储系统，在实现过程中开发者们发现有必要也有可能把分布式系统管理层与数据存储层分离开来，前者就形成了现在的riak_core。
+
+riak_core是riak系统实现过程中最重要的产品，此外还有其它副产品，如用与构建erlang应用系统的Make工具：rebar，一个日志工具lager，REST的webmachine，一个kv数据库bitcask，对leveldb的一个erlang包装elevedb，每个单独拿出来都是很了不起的产品。
+我觉得围绕着riak的一系列产品，一个生态系统开始形成了。
+
+riak_core并不涉及到数据的存储。例如一个系统的访问量很大，需要一个集群来处理用户的访问请求，而每个用户请求会话是有状态的。理想情况下集群的每个机器应该能平分用户访问量，而且最好每个用户固定由某个机器处理，以尽量减少会话在不同机器间的迁移，但是在某台机器宕掉时也要能无缝的将用户会话迁移到别的机器上。这种情况与数据存储无关，但是可以借助dynamo的设计思想用riak_core实现。
+
+我觉得riak_core似乎可以帮助传统关系数据库实现高可伸缩性，外带并行处理能力。如果用传统关系数据库做存储，关系表的主键都能用uuid的话，当然事务处理还是很棘手。有时间我再仔细想想：UUID+RDBM+riak_core=high scalable RDBM, with parallel SQL
+
+
+简单的说，riak_core是一个基于dynamo的分布式应用系统开发框架。如果要开发一个分布式的应用系统的（或者说，某种云平台），
+开发者可以考虑基于riak_core开发。因为分布式相关领域的技术实现都有它完成，开发者可以集中精力考虑自己系统的业务逻辑。
+
+例子和demo
+
+学习使用riak-core最好的文档是try-try-try（访问这里），这是一个完整step by step的riak_core应用开发指南。而且比较详细的介绍了riak_core分布式系统架构中的一些关键概念，如vnode。
+
+try-try-try的学习顺序是：
+riak-core-first-multinode  如果构建一个hello world级的riak_core应用
+riak-core-the-vnode 例子解释vnode
+riak-core-the-coordinator
+riak-core-conflict-resolution
+riak-search-inline-fields
+
+
+基于try-try-try，有人对其中的例子做了些改进，见[urlhttps://github.com/benmmurphy/ecnty]这里[/url]
+
+还有这些例子：
+SockJS (using Cowboy) -> riak_core: 
+https://github.com/jbrisbin/sockjs-riak_core-vnode-dispatcher 
+
+Misultin (plain HTTP, no websockets) -> riak_core: 
+https://github.com/jbrisbin/misultin-riak-core-vnode-dispatcher 
+
+RabbitMQ/AMQP -> riak_core: 
+https://github.com/jbrisbin/rabbitmq-riak_core-vnode-dispatcher 
+
+另外，还有一个可用来学习和模仿的应用是riak_id，代码见这里，它模仿了Twitter的Snowflake，这是一个用于大规模生成唯一id的网络服务，关于后者看这里。
+
+
+
+
+注：cryolite不保证blog文章的稳定性和信息的时效性，如有时间和需要本文会随时更新和修改。
+
+
+关于dynamo，还有一个erlang的开源实现dynomite，不过已经早已不更新了。
+
+其它参考文档：
+riak_core介绍 http://basho.com/blog/technical/2010/07/30/introducing-riak-core/
+riak内幕 http://www.erlang-factory.com/upload/presentations/255/RiakInside.pdf
+A Tour of Basho's Source at GitHub http://www.erlang-factory.com/upload/presentations/387/fritchie.basho-github-repo-tour.pdf
+论文重读: Amazon Dynamo  http://blog.ddup.us/?p=185
