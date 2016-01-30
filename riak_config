@@ -3,16 +3,16 @@ search=on
 backend=leveldb
 
 2. Type the following on a erl terminal with riakc_pb_socket libs
-{ok, Pid}=riakc_pb_socket:start_link("127.0.0.1", 10018).
+{ok, Pid}=riakc_pb_socket:start_link("10.0.3.171", 10017).
 {ok, Schema} = file:read_file("/home/mike/proj/swarm/doc/content_solr_schema.xml").
 riakc_pb_socket:create_search_schema(Pid, <<"content_search_schema">>,Schema).
 
 curl -X PUT -H 'content-type: application/xml' 'http://192.168.1.102:10018/search/schema/content' --data-binary @content_solr_schema.xml
 
 <!--you must do this step if you want make it work -->
-curl -XDELETE http://127.0.0.1:10018/search/index/content_search_index
+curl -XDELETE http://10.0.3.171:10018/search/index/content_search_index
 
-curl -XPUT http://127.0.0.1:10018/search/index/content_search_index -H 'Content-Type: application/json' -d '{"schema":"content_search_schema"}'
+curl -XPUT http://10.0.3.171:10018/search/index/content_search_index -H 'Content-Type: application/json' -d '{"schema":"content_search_schema"}'
 
 3. do following on riak nodes
 riak-admin bucket-type create content '{"props":{"allow_mult":false, "search_index":"content_search_index"}}'
