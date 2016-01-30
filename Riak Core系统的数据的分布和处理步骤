@@ -1,0 +1,74 @@
+Riak Core系统的数据的分布和处理步骤 
+
+从原理上讲，Riak Core通过hash算法将数据随机均匀的分布在一个环上，数据的hash值也就是在环上的位置（源码中常用Index表示），知道了Index就知道了对应的分区partition，知道了分区就知道了对应的管理节点。知道了这个节点我们可以向其发送对应的处理命令：如取出这块数据、修改这块数据、对这块数据进行计算等等。 
+
+在这样的系统上处理数据的步骤如下： 
+1） 计算数据在环上的位置； 
+2） 计算这个位置对应分区partition的管理节点； 
+3） 向这个（些）节点发送处理命令 
+
+对环上分布在不同节点上的这些数据的操作可以并发的进行，因此Riak Core本质上还是一个数据并行的分布式系统。 
+
+以上是客户使用时的处理过程（或步骤）。而开发人员在基于Riak Core构建分布式系统时主要面临两个问题： 
+数据如何分布：Riak Core通过某种hash算法将数据随机均匀的分布在一个环上。选取那种hash算法，如何hash，可以由开发人员自由选择。例如，如果数据有唯一key，那么可以对key进行hash，具体来讲，riak这个kv 存储系统默认是对bucket+key做hash。（当然riak也可以对不同的bucket配置不同的hash方式，包括hash算法和要hash的数据）
+数据如何处理：也即节点能处理哪些命令，以及这些命令的实现。对数据的处理涉及到系统的业务逻辑，这得由开发人员自己实现。例如对riak来说，主要的业务逻辑就是存储和查找了。
+
+
+1. 数据如何分布 
+
+数据的分布是指如何将给定的数据映射到环上的位置（Index）。数据如何在环上分布可以由我们自己自行决定，本文为了表述方便称之为“数据分布的哈希策略”，这包括两方面： 
+1. 哈希算法的选择：Riak Core默认的hash算法是SHA算法，当然我们也可以选择自己的hash算法，不过实在没有这个必要。 
+2. 哈希的对象：hash函数接收一个对象参数，这个参数是一个含两个二进制数据的term；我们根据数据的特点自行确定term的组合方式，例如对于riak这样的key-value数据库，这个term的值就是这样子: {<<"bucket", "key">>} 
+
+实际上Riak Core提供的了两个hash函数，一个叫chash_std_keyfun，一个叫chash_bucketonly_keyfun，缺省的是chash_std_keyfun函数。相同的是它们都采用了SHA哈希算法，不同的是哈希对象的选取： 
+
+chash_std_keyfun({Bucket, Key}) -> chash:key_of({Bucket, Key}). 
+chash_bucketonly_keyfun({Bucket, _Key}) -> chash:key_of(Bucket). 
+
+可以看到，hash的对象不同，一个对{Bucket,Key}整体做hash，一个只对Bucket做hash，他们都调用的key_of使用的是SHA哈希算法： 
+-spec key_of(ObjectName :: term()) -> index(). 
+key_of(ObjectName) ->     
+     crypto:sha(term_to_binary(ObjectName)). 
+
+
+这些工作是通过Riak Core提供助手模块riak_core_util中的函数chash_key进行，一般在交给vnode_master之前要预先计算好了数据在ring上的位置（Index）。 
+
+@spec chash_key(BKey :: {binary(), binary()}) -> chash:index() 
+chash_key({Bucket,Key}) -> 
+    BucketProps = riak_core_bucket:get_bucket(Bucket), 
+    {chash_keyfun, {M, F}} = proplists:lookup(chash_keyfun, BucketProps), 
+    M:F({Bucket,Key}). 
+
+代码不是很直观，原因是中间插入了额外的逻辑，为了实现不同bucket可以有不同的hash策略。 
+
+可以看到chash_key不做具体的hash计算，它只是调用了配置文件中设定的hash函数（用红色标注），换句话，我们可以自定义自己的hash函数，这个函数有唯一的参数，这个参数也是 {Bucket::binary(), Key::binary()} 
+
+2.数据的处理步骤 
+
+在解决了数据如何分布的问题后，再来看看如何使用： 
+
+数据处理步骤中对应的第1步，计算数据在环上的位置，Riak Core提供了对应的API，及函数riak_core_util:chash_key/1。 
+
+以riak这个NoSQL数据库为例，它是通过对数据所在的bucket以及数据的key做hash计算得到数据的分布节点的（即默认的chash_std_keyfun）： 
+BKey={Bucket, Key} 
+DataIdx = riak_core_util:chash_key(BKey), 
+DataIdx就是根据数据的分布策略得到的该数据在环上的位置。 
+
+数据处理步骤中对应的第2步，计算这个位置对应分区partition的管理节点： 
+根据环上位置就可以得到对于的节点： 
+PrefList = riak_core_apl:get_primary_apl(DataIdx, 1, rts), 
+IdxNode = hd(PrefList), % 数据分布的第一个节点 
+
+数据处理步骤中对应的第3步， 向这个（些）节点发送处理命令 
+知道了数据分布的节点，就可以给该节点发送命令了。 
+
+PrefList = riak_core_apl:get_primary_apl(DataIdx, 1, rts), 
+IdxNode = hd(PrefList), % 数据分布的第一个节点 
+riak_core_vnode_master:command(IdxNode, ...  % 在数据分布节点上进行数据处理 
+
+一个完整的例子：rts这个例子中的ping，使用的是根据当前时间数据计算出分布的节点，然后 
+
+DataIdx = riak_core_util:chash_key({<<"ping">>, term_to_binary(now())}),
+PrefList = riak_core_apl:get_primary_apl(DataIdx, 1, [i]rts[/i]),
+IdxNode = hd(PrefList), % 数据分布的第一个节点
+riak_core_vnode_master:command(IdxNode, ...  % 在数据分布节点上进行数据处理
