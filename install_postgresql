@@ -10,7 +10,7 @@ sudo -u postgres psql postgres
 Enter new password: 
 
 
-创建database时出现createdb: could not connect to database template1: FATAL:  role "dasudian" does not exist
+创建database时出现createdb: could not connect to database template1: FATAL:  role "user" does not exist
 
 使用
 sudo -u postgres psql
