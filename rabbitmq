@@ -1,10 +1,10 @@
 [
  {rabbit, [
     {tcp_listeners, [{"0.0.0.0", 5672}]},
-   %% {rabbit, [{loopback_users, [dasudian]}]},
+   %% {rabbit, [{loopback_users, [ubuntu]}]},
     {loopback_users, []},
-    {default_user,<<"dasudian">>},
-    {default_pass,<<"Dasudian123456">>}
+    {default_user,<<"ubuntu">>},
+    {default_pass,<<"ubutu">>}
 
  ]}
 ]. 
